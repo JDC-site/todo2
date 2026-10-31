@@ -1,0 +1,188 @@
+<title>シンプルTodo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap">
+<style>
+/* レイアウト: 中央1カラム。ステッカー風の太い枠+ずらし影でカジュアルに。見出しは大きく丸く、完了時はチェックがぽんと弾む */
+:root{
+  --bg:#e9efff; --surface:#ffffff; --ink:#23223a; --muted:#6c6a8a; --edge:#23223a;
+  --accent:#5a4df0; --accent-fg:#ffffff; --track:#d3dbf7;
+  --pink:#ffa3c0; --yellow:#ffd84d; --mint:#6fdcb2; --chip-fg:#23223a; --danger:#e0325f;
+  --font:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1a1930; --surface:#26253f; --ink:#f1f0ff; --muted:#a3a1c7; --edge:#0e0d1d;
+  --accent:#8f86ff; --accent-fg:#14122b; --track:#33325a; --danger:#ff7a9c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1a1930; --surface:#26253f; --ink:#f1f0ff; --muted:#a3a1c7; --edge:#0e0d1d;
+  --accent:#8f86ff; --accent-fg:#14122b; --track:#33325a; --danger:#ff7a9c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.6;
+  padding-block:36px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.app{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-direction:column;gap:2px}
+.date{color:var(--muted);font-size:14px;font-weight:500}
+h1{margin:0;font-size:34px;font-weight:900;line-height:1.25;text-wrap:balance}
+.hint{margin:0;color:var(--muted);font-weight:500}
+.progress{height:14px;background:var(--track);border:2px solid var(--edge);border-radius:999px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--mint);border-right:2px solid var(--edge);transition:width .4s cubic-bezier(.3,1.4,.5,1)}
+.progress i[style*="width: 0%"]{border-right:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:2px solid var(--edge);border-radius:20px;box-shadow:0 4px 0 var(--edge)}
+form.add{padding:14px;display:flex;flex-direction:column;gap:12px}
+.add .row1{display:flex;gap:10px}
+.add input[type=text]{flex:1;min-width:0;border:0;background:transparent;font-size:17px;font-weight:500;padding:8px 6px}
+.add input[type=text]::placeholder{color:var(--muted)}
+.add input[type=text]:focus{outline:none}
+.btn{border:2px solid var(--edge);border-radius:14px;background:var(--accent);color:var(--accent-fg);font-weight:900;padding:8px 20px;cursor:pointer;box-shadow:0 3px 0 var(--edge);transition:transform .08s,box-shadow .08s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 0 var(--edge)}
+.btn:active{transform:translateY(3px);box-shadow:0 0 0 var(--edge)}
+.opts{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:14px;font-weight:500;color:var(--muted)}
+.seg{display:flex;gap:6px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{border:2px solid var(--edge);border-radius:999px;padding:1px 14px;cursor:pointer;color:var(--chip-fg);font-weight:700;font-size:14px;opacity:.55}
+.seg label[data-p=high]{background:var(--pink)}.seg label[data-p=mid]{background:var(--yellow)}.seg label[data-p=low]{background:var(--mint)}
+.seg input:checked+label{opacity:1;box-shadow:0 2px 0 var(--edge);transform:translateY(-1px)}
+.seg input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.opts input[type=date]{background:var(--bg);border:2px solid var(--edge);border-radius:12px;padding:2px 8px;font-size:14px;color:var(--ink)}
+.tabs{display:flex;gap:8px}
+.tabs button{border:2px solid var(--edge);background:var(--surface);border-radius:999px;padding:4px 16px;cursor:pointer;font-weight:700;font-size:14px;color:var(--ink)}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+li.item{padding:12px 14px;display:flex;align-items:center;gap:14px}
+li.done{box-shadow:0 2px 0 var(--edge);transform:translateY(2px)}
+.chk{appearance:none;flex:none;width:30px;height:30px;border:2px solid var(--edge);border-radius:10px;background:var(--surface);cursor:pointer;display:grid;place-items:center;margin:0}
+.chk:checked{background:var(--mint);animation:pop .35s cubic-bezier(.3,1.8,.5,1)}
+.chk:checked::after{content:"";width:8px;height:14px;border:solid var(--edge);border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-2px)}
+@keyframes pop{0%{transform:scale(.7)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+.body{flex:1;min-width:0}
+.title{overflow-wrap:anywhere;cursor:text;font-weight:700}
+.done .title{color:var(--muted);text-decoration:line-through;text-decoration-thickness:2px;font-weight:500}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12px;font-weight:700;margin-top:4px}
+.chip{border:2px solid var(--edge);border-radius:999px;padding:0 10px;color:var(--chip-fg)}
+.chip.high{background:var(--pink)}.chip.mid{background:var(--yellow)}.chip.low{background:var(--mint)}
+.due{color:var(--muted);font-weight:500}
+.due.over{color:var(--danger);font-weight:900}
+.del{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:22px;line-height:1;padding:4px 10px;border-radius:10px}
+.del:hover{color:var(--danger);background:var(--track)}
+.edit{width:100%;border:2px solid var(--accent);border-radius:10px;background:var(--bg);padding:2px 8px;font-weight:700}
+.empty{text-align:center;color:var(--muted);font-weight:500;padding:36px 16px;border:2px dashed var(--edge);border-radius:20px}
+footer{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:14px;font-weight:500}
+footer button{border:0;background:transparent;color:var(--muted);cursor:pointer;text-decoration:underline;font-weight:500}
+@media (prefers-reduced-motion:reduce){.progress i,.btn{transition:none}.chk:checked{animation:none}}
+</style>
+
+<div class="app">
+  <header>
+    <span class="date" id="date"></span>
+    <h1>今日は何する?</h1>
+    <p class="hint" id="hint"></p>
+  </header>
+  <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+
+  <form class="add card" id="form">
+    <div class="row1">
+      <input type="text" id="text" placeholder="やることを入力して Enter" autocomplete="off" aria-label="新しいタスク">
+      <button class="btn" type="submit">追加</button>
+    </div>
+    <div class="opts">
+      <span>優先度</span>
+      <div class="seg" role="radiogroup" aria-label="優先度">
+        <input type="radio" name="pri" id="p-high" value="high"><label data-p="high" for="p-high">高</label>
+        <input type="radio" name="pri" id="p-mid" value="mid" checked><label data-p="mid" for="p-mid">中</label>
+        <input type="radio" name="pri" id="p-low" value="low"><label data-p="low" for="p-low">低</label>
+      </div>
+      <label for="due">期限</label>
+      <input type="date" id="due">
+    </div>
+  </form>
+
+  <div class="tabs" role="group" aria-label="絞り込み">
+    <button type="button" data-f="all" aria-pressed="true">すべて</button>
+    <button type="button" data-f="active" aria-pressed="false">未完了</button>
+    <button type="button" data-f="done" aria-pressed="false">完了</button>
+  </div>
+
+  <ul id="list"></ul>
+
+  <footer>
+    <span id="count"></span>
+    <button type="button" id="clear">完了済みを削除</button>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var KEY="simple-todo-v1", todos=[], filter="all";
+  var samples=[
+    {id:1,text:"週末の買い物リストをつくる",pri:"mid",due:"",done:false},
+    {id:2,text:"請求書を確認して送付する",pri:"high",due:ymd(0),done:false},
+    {id:3,text:"朝のストレッチ",pri:"low",due:"",done:true}
+  ];
+  function ymd(offset){var d=new Date();d.setDate(d.getDate()+offset);
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function load(){try{var s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}return samples;}
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(todos));}catch(e){}}
+  todos=load();
+
+  var $=function(id){return document.getElementById(id)};
+  var list=$("list");
+  var w=["日","月","火","水","木","金","土"], n=new Date();
+  $("date").textContent=(n.getMonth()+1)+"月"+n.getDate()+"日("+w[n.getDay()]+")";
+
+  var priLabel={high:"高",mid:"中",low:"低"}, order={high:0,mid:1,low:2};
+
+  function render(){
+    var today=ymd(0);
+    var items=todos.filter(function(t){return filter==="all"||(filter==="done"?t.done:!t.done)});
+    items.sort(function(a,b){return (a.done-b.done)||(order[a.pri]-order[b.pri])||((a.due||"9")>(b.due||"9")?1:-1)});
+    list.innerHTML="";
+    if(!items.length){var e=document.createElement("li");e.className="empty";
+      e.textContent=filter==="done"?"完了したタスクはまだありません":"タスクはありません。上の入力欄から追加しましょう";list.appendChild(e);}
+    items.forEach(function(t){
+      var li=document.createElement("li");li.className="item card"+(t.done?" done":"");
+      var c=document.createElement("input");c.type="checkbox";c.className="chk";c.checked=t.done;c.setAttribute("aria-label","完了にする");
+      c.onchange=function(){t.done=c.checked;save();render();};
+      var b=document.createElement("div");b.className="body";
+      var ti=document.createElement("div");ti.className="title";ti.textContent=t.text;ti.title="ダブルクリックで編集";
+      ti.ondblclick=function(){edit(t,ti);};
+      var m=document.createElement("div");m.className="meta";
+      var p=document.createElement("span");p.className="chip "+t.pri;p.textContent="優先度 "+priLabel[t.pri];
+      m.appendChild(p);
+      if(t.due){var d=document.createElement("span");d.className="due";var dd=t.due.split("-");
+        d.textContent="期限 "+(+dd[1])+"/"+(+dd[2]);
+        if(!t.done&&t.due<today){d.className="due over";d.textContent+=" 期限切れ";}
+        else if(!t.done&&t.due===today){d.className="due over";d.textContent+=" 今日";}
+        m.appendChild(d);}
+      b.appendChild(ti);b.appendChild(m);
+      var x=document.createElement("button");x.className="del";x.textContent="×";x.setAttribute("aria-label","削除");
+      x.onclick=function(){todos=todos.filter(function(o){return o!==t});save();render();};
+      li.appendChild(c);li.appendChild(b);li.appendChild(x);list.appendChild(li);
+    });
+    var done=todos.filter(function(t){return t.done}).length, total=todos.length, left=total-done;
+    $("count").textContent="未完了 "+left+" 件 / 全 "+total+" 件";
+    $("hint").textContent=!total?"最初のタスクを追加してみよう":left?"あと"+left+"つ。ゆっくりいこう":"ぜんぶ終わった! おつかれさま";
+    $("bar").style.width=(total?done/total*100:0)+"%";
+    $("clear").hidden=!done;
+    document.querySelectorAll(".tabs button").forEach(function(btn){
+      btn.setAttribute("aria-pressed",btn.dataset.f===filter);});
+  }
+  function edit(t,el){
+    var i=document.createElement("input");i.className="edit";i.value=t.text;i.setAttribute("aria-label","タスクを編集");
+    el.replaceWith(i);i.focus();i.select();
+    var fin=function(ok){if(ok&&i.value.trim())t.text=i.value.trim();save();render();};
+    i.onkeydown=function(e){if(e.key==="Enter")fin(true);if(e.key==="Escape")fin(false);};
+    i.onblur=function(){fin(true);};
+  }
+  $("form").addEventListener("submit",function(e){
+    e.preventDefault();var v=$("text").value.trim();if(!v)return;
+    var pri=document.querySelector('input[name=pri]:checked').value;
+    todos.push({id:Date.now(),text:v,pri:pri,due:$("due").value,done:false});
+    $("text").value="";$("due").value="";save();render();$("text").focus();
+  });
+  document.querySelectorAll(".tabs button").forEach(function(btn){
+    btn.onclick=function(){filter=btn.dataset.f;render();};});
+  $("clear").onclick=function(){todos=todos.filter(function(t){return !t.done});save();render();};
+  render();
+})();
+</script>
